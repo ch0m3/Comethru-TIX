@@ -1,17 +1,16 @@
-// Layout for pages anyone can see: navbar on top, page content below via
-// <Outlet />. React Router renders whichever child route matched inside
-// the Outlet.
-
 import { Outlet } from 'react-router-dom'
 import PublicNavbar from '../components/navbars/PublicNavbar'
 
 export default function PublicLayout() {
   return (
-    <div>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNavbar />
-      <main className="p-6">
+      <main style={{ flex: 1 }}>
         <Outlet />
       </main>
+      <footer style={{ borderTop: '1px solid var(--color-border)', padding: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+        © {new Date().getFullYear()} ComeThru Tix — All rights reserved
+      </footer>
     </div>
   )
 }

@@ -3,11 +3,9 @@ import AdminNavbar from '../components/navbars/AdminNavbar'
 
 export default function AdminLayout() {
   return (
-    <div>
+    <div style={{ minHeight: '100vh' }}>
       <AdminNavbar />
-      <main className="p-6">
-        <Outlet />
-      </main>
+      <main className="page"><Outlet /></main>
     </div>
   )
 }

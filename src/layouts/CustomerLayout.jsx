@@ -3,11 +3,9 @@ import CustomerNavbar from '../components/navbars/CustomerNavbar'
 
 export default function CustomerLayout() {
   return (
-    <div>
+    <div style={{ minHeight: '100vh' }}>
       <CustomerNavbar />
-      <main className="p-6">
-        <Outlet />
-      </main>
+      <main className="page"><Outlet /></main>
     </div>
   )
 }

@@ -1,7 +1,14 @@
-// AuthProvider keeps track of who is logged in and exposes login/register/
-// logout functions to the rest of the app through AuthContext. Any
-// component can read the current user with the useAuth() hook (see
-// useAuth.js) instead of passing props down through many layers.
+/**
+ * AuthProvider
+ *
+ * Persists the session in localStorage so a page refresh keeps the user
+ * logged in. The JWT token and user object are both stored together under
+ * one key. On mount, the saved session is read synchronously so there is
+ * no flash of "not logged in" on first render.
+ *
+ * role is read directly from user.role (set by the backend on every
+ * login / register response) — the role check happens in ProtectedRoute.
+ */
 
 import { useState } from 'react'
 import { apiRequest } from '../api/client'
@@ -9,25 +16,21 @@ import AuthContext from './authContext'
 
 const STORAGE_KEY = 'comethru_auth'
 
-function readSavedSession() {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  if (!saved) return { user: null, token: null }
-  return JSON.parse(saved)
+function readSession() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : { user: null, token: null }
+  } catch {
+    return { user: null, token: null }
+  }
 }
 
 export function AuthProvider({ children }) {
-  // Read localStorage once, during initial state setup, instead of in a
-  // useEffect. This avoids an extra render and a "set state in an effect"
-  // lint warning, and means the session is available on the very first render.
-  const [{ user, token }, setSession] = useState(readSavedSession)
-  const [loading] = useState(false)
+  const [{ user, token }, setSession] = useState(readSession)
 
-  function saveSession(nextUser, nextToken) {
-    setSession({ user: nextUser, token: nextToken })
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ user: nextUser, token: nextToken })
-    )
+  function saveSession(user, token) {
+    setSession({ user, token })
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }))
   }
 
   function clearSession() {
@@ -35,7 +38,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(STORAGE_KEY)
   }
 
-  // role must be 'customer', 'organizer', or 'admin'
+  // role = 'customer' | 'organizer' | 'admin'
   async function login(role, { email, password }) {
     const data = await apiRequest(`/auth/${role}/login`, {
       method: 'POST',
@@ -63,17 +66,18 @@ export function AuthProvider({ children }) {
     clearSession()
   }
 
-  const value = {
-    user,
-    token,
-    loading,
-    isAuthenticated: Boolean(user),
-    role: user?.role ?? null,
-    login,
-    registerCustomer,
-    registerOrganizer,
-    logout,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{
+      user,
+      token,
+      isAuthenticated: Boolean(user),
+      role: user?.role ?? null,
+      login,
+      registerCustomer,
+      registerOrganizer,
+      logout,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }

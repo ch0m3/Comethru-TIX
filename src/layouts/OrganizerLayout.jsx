@@ -3,11 +3,9 @@ import OrganizerNavbar from '../components/navbars/OrganizerNavbar'
 
 export default function OrganizerLayout() {
   return (
-    <div>
+    <div style={{ minHeight: '100vh' }}>
       <OrganizerNavbar />
-      <main className="p-6">
-        <Outlet />
-      </main>
+      <main className="page"><Outlet /></main>
     </div>
   )
 }
