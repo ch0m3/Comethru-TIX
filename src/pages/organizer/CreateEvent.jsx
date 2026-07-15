@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiRequest } from '../../api/client'
 import { useAuth } from '../../context/useAuth'
+import ImageUploadField from '../../components/ImageUploadField'
 
 const FIELD = ({ label, children }) => (
   <div style={{ marginBottom: 14 }}>
@@ -118,20 +119,9 @@ export default function CreateEvent() {
             <input value={location} onChange={e => setLocation(e.target.value)} required placeholder="e.g. KICC, Nairobi" />
           </FIELD>
 
-          <FIELD label="Event Image URL (optional)">
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={e => setImageUrl(e.target.value)}
-              placeholder="https://images.unsplash.com/..."
-            />
-            {imageUrl && (
-              <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', height: 140 }}>
-                <img src={imageUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  onError={e => e.target.style.display = 'none'} />
-              </div>
-            )}
-          </FIELD>
+          <div style={{ marginBottom: 14 }}>
+            <ImageUploadField label="Event Image" value={imageUrl} onChange={setImageUrl} height={160} />
+          </div>
 
           {error && <p className="msg-error">{error}</p>}
 

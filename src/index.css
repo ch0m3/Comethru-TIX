@@ -124,6 +124,50 @@ label {
 .msg-error   { color: var(--color-danger);  font-size: 0.85rem; margin-top: 6px; }
 .msg-success { color: var(--color-success); font-size: 0.85rem; margin-top: 6px; }
 
+/* Image upload dropzone (organizer create/edit event) */
+.image-dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-alt);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.image-dropzone:hover {
+  border-color: var(--color-primary);
+}
+
+.image-dropzone[data-active="true"] {
+  border-color: var(--color-primary);
+  background: rgba(232, 160, 32, 0.08);
+}
+
+.image-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(13, 15, 26, 0.75);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-remove-btn:hover {
+  background: var(--color-danger);
+}
+
 /* Section title */
 .section-title {
   font-size: 1.3rem;
