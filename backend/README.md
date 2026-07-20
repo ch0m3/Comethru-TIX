@@ -1,5 +1,31 @@
 # ComeThru Tix — Backend
 
+## What changed in this version
+
+The frontend's event-image field now offers drag-and-drop / browse-to-
+upload, in addition to pasting a URL (see `ImageUploadField.jsx`).
+Uploaded files are converted to a base64 **data URL** client-side and
+sent as `image_url`, exactly like before — no new endpoint or field name,
+just a much longer string sometimes. Two things changed here to support
+that:
+
+1. `Event.image_url` is now `db.Text` instead of `db.String(500)` — the
+   old length would truncate or reject a data URL.
+2. `MAX_CONTENT_LENGTH` (10MB) is set on the Flask app, and `POST /events`
+   / `PUT /events/<id>` now reject an `image_url` over ~8MB with a clear
+   `{"error": "Image is too large."}` instead of a generic 413 or a
+   silently truncated image. This mirrors the frontend's own 5MB file
+   cap.
+
+**If you already have a database from the previous version:** SQLite
+doesn't actually enforce `VARCHAR` length limits, so existing `app.db`
+files keep working with no migration needed. If you switch to Postgres
+later, run a migration to `ALTER COLUMN image_url TYPE TEXT` (or just
+recreate the table via `seed.py` on a fresh database) — a `String(500)`
+column there would truncate or reject a data URL.
+
+
+
 A Flask API built to match the `comethru_v3` frontend's `apiRequest` calls
 exactly (see `src/api/client.js` and every page under `src/pages/` in the
 frontend project).

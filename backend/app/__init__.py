@@ -57,6 +57,10 @@ def create_app(config_class=Config):
     def method_not_allowed(e):
         return jsonify(error="Method not allowed."), 405
 
+    @app.errorhandler(413)
+    def too_large(e):
+        return jsonify(error="That request is too large. Images must be under 5MB."), 413
+
     @app.errorhandler(500)
     def server_error(e):
         return jsonify(error="Something went wrong on our end."), 500

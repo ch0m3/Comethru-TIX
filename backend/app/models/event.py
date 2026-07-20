@@ -19,7 +19,10 @@ class Event(db.Model):
     description = db.Column(db.Text, nullable=True)
     date = db.Column(db.DateTime, nullable=False)
     location = db.Column(db.String(200), nullable=False)
-    image_url = db.Column(db.String(500), nullable=True)
+    # Text, not String(500): the frontend's image uploader can send either
+    # a real URL or a base64 data URL (an uploaded file encoded inline),
+    # and a data URL for even a modest image easily runs past 500 chars.
+    image_url = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), nullable=False, default="pending")
     blacklist_reason = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

@@ -27,3 +27,11 @@ class Config:
     # Password reset tokens are itsdangerous-signed and expire after this
     # many seconds (1 hour).
     RESET_TOKEN_MAX_AGE = 60 * 60
+
+    # The frontend's image uploader can send an event image as a base64
+    # data URL (a 5MB image inflates to ~6.7MB of base64 text) inside the
+    # JSON body. Flask's default is unlimited; capping it at 10MB stops a
+    # runaway/garbage request from being read into memory in full before
+    # being rejected. 10MB comfortably covers the frontend's 5MB image
+    # cap plus JSON overhead.
+    MAX_CONTENT_LENGTH = 10 * 1024 * 1024

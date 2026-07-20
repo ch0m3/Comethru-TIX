@@ -14,6 +14,17 @@ from app.utils.decorators import role_required, error
 
 events_bp = Blueprint("events", __name__, url_prefix="/api/events")
 
+# The frontend's uploader caps files at 5MB; base64 inflates that by ~33%,
+# so 8MB of characters gives headroom without allowing arbitrarily large
+# payloads through as "just a string".
+MAX_IMAGE_URL_LENGTH = 8 * 1024 * 1024
+
+
+def _validate_image_url(image_url):
+    if image_url and len(image_url) > MAX_IMAGE_URL_LENGTH:
+        return "Image is too large."
+    return None
+
 
 def _current_role_and_id():
     """Reads the JWT if one is present, without failing the request if it
@@ -93,6 +104,10 @@ def create_event():
     if not title or not location or not date:
         return error("Title, date, and location are required.")
 
+    image_error = _validate_image_url(image_url)
+    if image_error:
+        return error(image_error)
+
     event = Event(
         organizer_id=user_id,
         title=title,
@@ -138,7 +153,11 @@ def update_event(event_id):
     if "description" in data:
         event.description = data.get("description")
     if "image_url" in data:
-        event.image_url = data.get("image_url") or None
+        image_url = data.get("image_url") or None
+        image_error = _validate_image_url(image_url)
+        if image_error:
+            return error(image_error)
+        event.image_url = image_url
 
     db.session.commit()
     return jsonify(event.to_dict()), 200
