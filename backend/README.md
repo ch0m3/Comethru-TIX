@@ -169,3 +169,13 @@ throws as `err.message`.
   written and reviewed carefully but not run end-to-end here. Run
   `python seed.py && python run.py` locally and smoke-test the auth flow
   first — that's where a typo would show up fastest.
+
+
+
+{
+  "name": "Comethru",
+  "email": "comethruevents@gmail.com",
+  "password": "12345678abcd",
+  "business_name": "Comthru Co"
+}
+
