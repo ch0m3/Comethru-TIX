@@ -1,17 +1,17 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
+from flask_jwt_extended import get_jwt, get_jwt_identity
 
 from app.extensions import db
 from app.models.booking import Booking
 from app.models.ticket_type import TicketType
 from app.models.event import Event
-from app.utils.decorators import role_required, error
+from app.utils.decorators import current_user_required, role_required, error
 
 bookings_bp = Blueprint("bookings", __name__, url_prefix="/api/bookings")
 
 
 @bookings_bp.route("", methods=["GET"])
-@jwt_required()
+@current_user_required
 def list_bookings():
     role = get_jwt().get("role")
     user_id = int(get_jwt_identity())
@@ -79,7 +79,7 @@ def create_booking():
 
 
 @bookings_bp.route("/<int:booking_id>", methods=["PUT"])
-@jwt_required()
+@current_user_required
 def update_booking(booking_id):
     role = get_jwt().get("role")
     user_id = int(get_jwt_identity())
