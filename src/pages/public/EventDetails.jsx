@@ -1,24 +1,32 @@
 /**
  * EventDetails
  *
- * Anyone can view the event details page without being logged in.
+ * Anyone can view the event details page and buy a ticket without being
+ * logged in — booking never requires an account.
+ *
  * When the user clicks "Get Tickets":
- *   - If they are already logged in as a customer → booking form shown directly
- *   - If not logged in → a guest info form appears asking for name, email, phone
- *     and number of tickets, then redirects them to customer login/register
- *     with a note about completing the booking.
+ *   - If they are logged in as a customer → name/email/phone are already on
+ *     file, so they only pick a payment method and confirm.
+ *   - If not logged in → they enter full name, email and phone purely so the
+ *     ticket/receipt can be sent to them (NOT for signing in), pick a payment
+ *     method, and confirm. No redirect to register/login happens.
  *
  * The ticket selection (type + quantity) is on this page — no second page needed.
  */
 
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { apiRequest } from '../../api/client'
 import { useAuth } from '../../context/useAuth'
 
+const PAYMENT_METHODS = [
+  { value: 'mpesa', label: 'M-Pesa' },
+  { value: 'card', label: 'Card' },
+  { value: 'cash', label: 'Cash at the door' },
+]
+
 export default function EventDetails() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const { token, role, isAuthenticated } = useAuth()
 
   const [event, setEvent] = useState(null)
@@ -26,17 +34,21 @@ export default function EventDetails() {
   const [loading, setLoading] = useState(true)
 
   // Booking form state
+  const [showBookingForm, setShowBookingForm] = useState(false)
   const [selectedTicketTypeId, setSelectedTicketTypeId] = useState('')
   const [quantity, setQuantity] = useState(1)
+  const [paymentMethod, setPaymentMethod] = useState('mpesa')
   const [bookingMsg, setBookingMsg] = useState('')
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  // Guest info (collected when user is not logged in)
-  const [showGuestForm, setShowGuestForm] = useState(false)
+  // Buyer info — only needed to deliver the ticket/receipt when the buyer
+  // isn't logged in. Never used for authentication.
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
+
+  const isCustomerSession = isAuthenticated && role === 'customer'
 
   useEffect(() => {
     apiRequest(`/events/${id}`, { token })
@@ -48,43 +60,30 @@ export default function EventDetails() {
   const selectedTicketType = event?.ticket_types?.find(t => t.id === Number(selectedTicketTypeId))
   const totalPrice = selectedTicketType ? (selectedTicketType.price * quantity).toFixed(2) : null
 
-  // Step 1 — user clicks "Get Tickets" on a non-logged-in session
-  function handleGetTickets() {
-    if (isAuthenticated && role === 'customer') {
-      // Already a customer — show booking confirmation directly
-      setShowGuestForm(false)
-    } else {
-      // Not logged in → collect their info first
-      setShowGuestForm(true)
-    }
-  }
-
-  // Step 2 — guest submits their info → redirect to register/login
-  function handleGuestSubmit(e) {
-    e.preventDefault()
-    // Store their intent so the login page can inform them
-    sessionStorage.setItem('booking_intent', JSON.stringify({
-      event_id: id,
-      ticket_type_id: selectedTicketTypeId,
-      quantity,
-      name: guestName,
-      email: guestEmail,
-      phone: guestPhone,
-    }))
-    navigate('/customer/register', { state: { prefillEmail: guestEmail, prefillName: guestName } })
-  }
-
-  // Step 3 — logged-in customer confirms booking
   async function handleBooking(e) {
     e.preventDefault()
     if (!selectedTicketTypeId) { setBookingMsg('Please select a ticket type.'); return }
+    if (!isCustomerSession && (!guestName || !guestEmail || !guestPhone)) {
+      setBookingMsg('Please fill in your name, email and phone so we can send your ticket.')
+      return
+    }
+
     setSubmitting(true)
     setBookingMsg('')
     try {
       await apiRequest('/bookings', {
         method: 'POST',
-        token,
-        body: { ticket_type_id: Number(selectedTicketTypeId), quantity: Number(quantity) },
+        token: isCustomerSession ? token : null,
+        body: {
+          ticket_type_id: Number(selectedTicketTypeId),
+          quantity: Number(quantity),
+          payment_method: paymentMethod,
+          ...(isCustomerSession ? {} : {
+            guest_name: guestName,
+            guest_email: guestEmail,
+            guest_phone: guestPhone,
+          }),
+        },
       })
       setBookingSuccess(true)
       setBookingMsg(`Booking confirmed! ${quantity} ticket(s) booked.`)
@@ -191,46 +190,56 @@ export default function EventDetails() {
                   </div>
                 )}
 
-                {/* CTA */}
-                {!isAuthenticated && !showGuestForm && (
-                  <button className="btn-primary" style={{ width: '100%' }} onClick={handleGetTickets}>
+                {/* CTA — no sign-in required to get a ticket */}
+                {!isAuthenticated && !showBookingForm && (
+                  <button className="btn-primary" style={{ width: '100%' }} onClick={() => setShowBookingForm(true)}>
                     Get Tickets
                   </button>
                 )}
 
-                {/* Guest info form — shown when not logged in */}
-                {!isAuthenticated && showGuestForm && (
-                  <form onSubmit={handleGuestSubmit}>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginBottom: 12 }}>
-                      Enter your details to continue booking:
-                    </p>
-                    <div style={{ marginBottom: 10 }}>
-                      <label>Full Name</label>
-                      <input value={guestName} onChange={e => setGuestName(e.target.value)} required placeholder="Your full name" />
-                    </div>
-                    <div style={{ marginBottom: 10 }}>
-                      <label>Email Address</label>
-                      <input type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} required placeholder="your@email.com" />
-                    </div>
-                    <div style={{ marginBottom: 14 }}>
-                      <label>Phone Number</label>
-                      <input type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} required placeholder="+254 7XX XXX XXX" />
-                    </div>
-                    <button type="submit" className="btn-primary" style={{ width: '100%' }}>
-                      Continue to Register / Login
-                    </button>
-                    <button type="button" className="btn-ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => setShowGuestForm(false)}>
-                      Back
-                    </button>
-                  </form>
-                )}
-
-                {/* Logged-in customer booking form */}
-                {isAuthenticated && role === 'customer' && (
+                {/* Booking form — same for guests and logged-in customers.
+                    Guests just have a few extra fields so we can deliver the
+                    ticket; nobody is asked to sign in. */}
+                {(isCustomerSession || showBookingForm) && (
                   <form onSubmit={handleBooking}>
+                    {!isCustomerSession && (
+                      <>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginBottom: 12 }}>
+                          Enter your details so we can send your ticket:
+                        </p>
+                        <div style={{ marginBottom: 10 }}>
+                          <label>Full Name</label>
+                          <input value={guestName} onChange={e => setGuestName(e.target.value)} required placeholder="Your full name" />
+                        </div>
+                        <div style={{ marginBottom: 10 }}>
+                          <label>Email Address</label>
+                          <input type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} required placeholder="your@email.com" />
+                        </div>
+                        <div style={{ marginBottom: 14 }}>
+                          <label>Phone Number</label>
+                          <input type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} required placeholder="+254 7XX XXX XXX" />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Payment method */}
+                    <div style={{ marginBottom: 16 }}>
+                      <label>Mode of Payment</label>
+                      <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                        {PAYMENT_METHODS.map(pm => (
+                          <option key={pm.value} value={pm.value}>{pm.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
                     <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={submitting || !selectedTicketTypeId}>
                       {submitting ? 'Confirming...' : 'Confirm Booking'}
                     </button>
+                    {!isCustomerSession && (
+                      <button type="button" className="btn-ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => setShowBookingForm(false)}>
+                        Back
+                      </button>
+                    )}
                     {bookingMsg && <p className="msg-error" style={{ marginTop: 8 }}>{bookingMsg}</p>}
                   </form>
                 )}
