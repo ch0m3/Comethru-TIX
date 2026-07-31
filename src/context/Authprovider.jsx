@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react'
-import { apiRequest } from '../api/client'
+import { apiRequest, refreshAuthSession } from '../api/client'
 import AuthContext from './authContext'
 
 const STORAGE_KEY = 'comethru_auth'
@@ -19,22 +19,22 @@ const STORAGE_KEY = 'comethru_auth'
 function readSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { user: null, token: null }
+    return raw ? JSON.parse(raw) : { user: null, token: null, refreshToken: null }
   } catch {
-    return { user: null, token: null }
+    return { user: null, token: null, refreshToken: null }
   }
 }
 
 export function AuthProvider({ children }) {
-  const [{ user, token }, setSession] = useState(readSession)
+  const [{ user, token, refreshToken }, setSession] = useState(readSession)
 
-  function saveSession(user, token) {
-    setSession({ user, token })
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }))
+  function saveSession(user, token, refreshToken = null) {
+    setSession({ user, token, refreshToken })
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token, refreshToken }))
   }
 
   function clearSession() {
-    setSession({ user: null, token: null })
+    setSession({ user: null, token: null, refreshToken: null })
     localStorage.removeItem(STORAGE_KEY)
   }
 
@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
       method: 'POST',
       body: { email, password },
     })
-    saveSession(data.user, data.access_token)
+    saveSession(data.user, data.access_token, data.refresh_token)
     return data.user
   }
 
@@ -62,6 +62,13 @@ export function AuthProvider({ children }) {
     })
   }
 
+  async function refreshSession() {
+    if (!refreshToken) return null
+    const data = await refreshAuthSession(refreshToken)
+    saveSession(data.user, data.access_token, data.refresh_token)
+    return data.access_token
+  }
+
   function logout() {
     clearSession()
   }
@@ -70,6 +77,8 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user,
       token,
+      refreshToken,
+      refreshSession,
       isAuthenticated: Boolean(user),
       role: user?.role ?? null,
       login,

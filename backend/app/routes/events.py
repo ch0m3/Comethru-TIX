@@ -9,6 +9,7 @@ from flask_jwt_extended import (
 
 from app.extensions import db
 from app.models.event import Event
+from app.models.user import User
 from app.models.ticket_type import TicketType
 from app.utils.decorators import role_required, error
 
@@ -34,7 +35,16 @@ def _current_role_and_id():
     identity = get_jwt_identity()
     if identity is None:
         return None, None
-    return get_jwt().get("role"), int(identity)
+    try:
+        user_id = int(identity)
+    except (TypeError, ValueError):
+        return None, None
+
+    user = User.query.get(user_id)
+    if not user or user.status != "active" or get_jwt().get("role") != user.role:
+        return None, None
+
+    return user.role, user.id
 
 
 def _parse_date(value):
