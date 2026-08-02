@@ -12,7 +12,7 @@
  *   apiRequest('/bookings', { method:'POST', token, body:{...} })
  */
 
-const BASE = import.meta.env.VITE_API_BASE_URL || 'https://comethru-tix.onrender.com/api'
+const BASE = import.meta.env.VITE_API_BASE_URL || 'https://comethru-tix.onrender.com'
 
 export async function apiRequest(path, { method = 'GET', token = null, body = null } = {}) {
   const headers = { 'Content-Type': 'application/json' }

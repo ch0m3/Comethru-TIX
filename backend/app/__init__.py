@@ -11,7 +11,7 @@ to create a fresh app with different config in tests later.
 from flask import Flask, jsonify
 
 from app.config import Config
-from app.extensions import db, migrate, jwt, bcrypt, cors
+from app.extensions import db, migrate, jwt, bcrypt, cors, mail
 
 
 def create_app(config_class=Config):
@@ -24,6 +24,7 @@ def create_app(config_class=Config):
     jwt.init_app(app)
     bcrypt.init_app(app)
     cors.init_app(app, origins=app.config["CORS_ORIGINS"], supports_credentials=True)
+    mail.init_app(app)
 
     # Import models so Flask-Migrate can see every table
     from app import models  # noqa: F401

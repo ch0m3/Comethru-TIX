@@ -37,3 +37,13 @@ class Config:
     # being rejected. 10MB comfortably covers the frontend's 5MB image
     # cap plus JSON overhead.
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024
+
+    #email configuration
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
+    # Gmail: use an App Password, not the real account password
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", MAIL_USERNAME)
+    # Gmail App Passwords: Google Account → Security → 2-Step Verification → App Passwords. Plain SMTP login with a normal password is blocked by Gmail.
