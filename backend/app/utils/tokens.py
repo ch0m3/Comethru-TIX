@@ -11,8 +11,31 @@ console. Swap the print() in app/routes/auth.py for a real email send
 
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from flask import current_app
+from flask_jwt_extended import create_access_token, create_refresh_token
 
 SALT = "password-reset"
+
+
+def _jwt_claims_for(user):
+    return {
+        "role": user.role,
+        "status": user.status,
+    }
+
+
+def create_auth_tokens(user):
+    claims = _jwt_claims_for(user)
+    return {
+        "access_token": create_access_token(
+            identity=str(user.id),
+            additional_claims=claims,
+        ),
+        "refresh_token": create_refresh_token(
+            identity=str(user.id),
+            additional_claims=claims,
+        ),
+        "token_type": "Bearer",
+    }
 
 
 def generate_reset_token(user):

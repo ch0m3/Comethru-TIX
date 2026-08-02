@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask import Blueprint, g, request, jsonify
+from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 
 from app.extensions import db
 from app.models.user import User
-from app.utils.decorators import error
-from app.utils.tokens import generate_reset_token, verify_reset_token
+from app.utils.decorators import current_user_required, error
+from app.utils.tokens import create_auth_tokens, generate_reset_token, verify_reset_token
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -101,10 +101,7 @@ def _login(role):
     if user.status == "deactivated":
         return error("Your account has been deactivated. Contact support.", 403)
 
-    access_token = create_access_token(
-        identity=str(user.id), additional_claims={"role": user.role}
-    )
-    return jsonify(user=user.to_dict(), access_token=access_token), 200
+    return jsonify(user=user.to_dict(), **create_auth_tokens(user)), 200
 
 
 @auth_bp.route("/customer/login", methods=["POST"])
@@ -122,12 +119,32 @@ def login_admin():
     return _login("admin")
 
 
+@auth_bp.route("/refresh", methods=["POST"])
+@jwt_required(refresh=True)
+def refresh_session():
+    claims = get_jwt()
+    try:
+        user_id = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return error("Your session is invalid. Please log in again.", 422)
+
+    user = User.query.get(user_id)
+    if not user:
+        return error("Your session is invalid. Please log in again.", 401)
+    if user.status != "active":
+        return error("Your account is not active. Contact support.", 403)
+    if claims.get("role") != user.role:
+        return error("Your session is out of date. Please log in again.", 401)
+
+    return jsonify(user=user.to_dict(), **create_auth_tokens(user)), 200
+
+
 # ── Profile ──────────────────────────────────────────────────────────────
 
 @auth_bp.route("/me", methods=["PUT"])
-@jwt_required()
+@current_user_required
 def update_me():
-    user = User.query.get_or_404(int(get_jwt_identity()))
+    user = g.current_user
     data = request.get_json(silent=True) or {}
 
     name = data.get("name")

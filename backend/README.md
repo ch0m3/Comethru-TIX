@@ -34,7 +34,8 @@ frontend project).
 
 - Flask + Flask-SQLAlchemy (ORM)
 - Flask-Migrate (migrations)
-- Flask-JWT-Extended (JWT auth, role stored as a custom claim)
+- Flask-JWT-Extended (short-lived access JWTs, refresh JWTs, role
+  stored as a custom claim)
 - Flask-Bcrypt (password hashing)
 - Flask-Cors
 - itsdangerous (signed, short-lived password-reset tokens — no email
@@ -75,16 +76,16 @@ run.py          starts the dev server
 
 ## How roles and auth work
 
-Every login route issues a JWT with the user's role baked in as a custom
-claim:
+Every login route issues a short-lived access JWT plus a longer-lived
+refresh JWT. Both tokens include the user's current role and status as
+claims, and `/auth/refresh` can rotate a valid refresh token into a fresh
+token pair.
 
-```python
-create_access_token(identity=str(user.id), additional_claims={"role": user.role})
-```
-
-`role_required("organizer")` (and similar) reads that claim to gate a
-route — so even a hand-crafted request with a customer's token gets a 403
-from `POST /api/events`, not just a hidden button in the UI.
+`role_required("organizer")` (and similar) verifies the token, reloads
+the user from the database, checks that the account is still `active`,
+and then checks the current database role. That means a deactivated user
+or a user whose role changed cannot keep using an old access token until
+it expires.
 
 **Account statuses**
 
@@ -113,7 +114,8 @@ throws as `err.message`.
 | POST | `/auth/customer/login` | – | `email, password` | → `{ user, access_token }` |
 | POST | `/auth/organizer/login` | – | same | rejects `pending`/`deactivated` |
 | POST | `/auth/admin/login` | – | same | |
-| PUT | `/auth/me` | any role | any of `name, email, password` | partial update |
+| POST | `/auth/refresh` | refresh token | – | rotates a valid refresh token into a fresh `{ user, access_token, refresh_token }` |
+| PUT | `/auth/me` | any active role | any of `name, email, password` | partial update |
 | POST | `/auth/forgot-password` | – | `email` | always returns the same message; logs a reset link to the console |
 | POST | `/auth/reset-password` | – | `token, new_password` | → `{ role, message }` |
 

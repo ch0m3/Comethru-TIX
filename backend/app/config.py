@@ -7,6 +7,7 @@ environment variables set in the host's dashboard.
 """
 
 import os
+from datetime import timedelta
 
 
 class Config:
@@ -19,7 +20,8 @@ class Config:
 
     # JWT
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-jwt-secret-key")
-    JWT_ACCESS_TOKEN_EXPIRES = 60 * 60 * 24  # 1 day
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=30)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
 
     # CORS - comma separated list of allowed frontend origins
     CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
